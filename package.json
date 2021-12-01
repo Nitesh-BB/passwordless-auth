@@ -1,5 +1,5 @@
 {
-  "name": "@bluebricks/passwordless",
+  "name": "passwordless-bb",
   "version": "1.0.0",
   "description": "Helper package for bringing FIDO2 authentication to Client Application",
   "main": "index.js",

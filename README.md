@@ -36,7 +36,7 @@ fido.login(data)
 Yes, it can be used in browser. include follwing in head tag
 
 ```
-<script src="https://cdn.jsdelivr.net/npm/@passwordless/auth/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/passwordless-bb@1.0.0/index.js"></script>
 ```
 
 ## Authors
