@@ -1,8 +1,9 @@
 {
-  "name": "@passwordless/auth",
+  "name": "@bluebricks/passwordless",
   "version": "1.0.0",
   "description": "Helper package for bringing FIDO2 authentication to Client Application",
   "main": "index.js",
+
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
