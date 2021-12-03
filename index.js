@@ -65,7 +65,7 @@ const fido2auth = (function () {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ username: userDetails.username }),
+            body: JSON.stringify({ username: data.username }),
           }
         );
         const transactionResponseJSON = await transactionResponse.json();
@@ -88,6 +88,25 @@ const fido2auth = (function () {
         return responseJSON;
       } catch (error) {
         throw new Error(error);
+      }
+    };
+
+    updateTransaction = async (transactionId, data) => {
+      try {
+        const response = await fetch(
+          this.baseurl + `/api/transaction/updateTransaction/${transactionId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ data }),
+          }
+        );
+        const responseJSON = await response.json();
+        return responseJSON;
+      } catch (error) {
+        throw error;
       }
     };
     async Audit(userdata) {
