@@ -5,6 +5,20 @@ const fido2auth = (function () {
       this.clientId = clientId;
     }
 
+
+    getApplicationNameAndLogo = async () => {
+      try {
+        const response = await fetch(
+          this.baseurl + "/api/applicationDetails/" + this.clientId);
+      
+        const responseJson = await response.json();
+         if (data.errorCode === -1) throw new Error(data.errorMessage);
+        return responseJson;
+      }
+      catch (error) {
+        throw new Error(error.message);
+      }
+    }
     checkRemoteAuthentication = async () => {
       try {
         const resp = await fetch(
