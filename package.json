@@ -1,13 +1,11 @@
 {
   "name": "passwordless-bb",
-  "version": "1.0.3",
+  "version": "2.0.2",
   "description": "Helper package for bringing FIDO2 authentication to Client Application",
   "main": "index.js",
-
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Nitesh-BB/passwordless-auth.git"
@@ -16,6 +14,7 @@
     "FIDO2",
     "Passwordless"
   ],
+
   "author": "Nitesh Singh",
   "license": "ISC",
   "bugs": {

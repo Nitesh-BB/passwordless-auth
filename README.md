@@ -29,14 +29,14 @@ Then, install the package and run the following command.
 Then, add the following lines to your application's configuration file:
 
 ```
-const {passwordless} = require("passwordless-bb")
-const fido = new passwordless("BASE_URL","CLIENT_ID")
+const {Passwordless} = require("passwordless-bb")
+Passwordless.init("BASE_URL","CLIENT_ID")
 
-fido.register(data)
+Passwordless.register(data)
 
 or
 
-fido.login(data)
+Passwordless.login(data)
 ```
 
 ### Can we Use This package in browser ?
@@ -44,20 +44,29 @@ fido.login(data)
 Yes, it can be used in browser. include follwing in head tag
 
 ```
-<script src="https://cdn.jsdelivr.net/npm/passwordless-bb@1.0.2/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/passwordless-bb@2.0.2/index.js"></script>
 
 
 const fido = new passwordless("BASE_URL","CLIENT_ID")
 
 ```
 
-#List of Apis
+#List of Functions
 
-1. Register
-2. Login
-3. Add Device
-4. getTransactionStatus
-5. updateTransactionStatus
+| Function name                      | Description                        |
+| -------------                      | ------------------------------     |
+| `init(baseUrl,clientId)`           | Initialize the package.            |
+| `login(data)`                      | Login using Passwordless.          |
+| `register(data)`                   | Register Using Passwordless.       |
+| `getApplicationNameAndLogo()`      | Get Application Name and Logo.     |
+|`getTransactionStatusOnChange(id)`  | Get Auth Status On Change.         |
+|`sendPushNotification`              | Send Push Notification.            |
+|`declineTransaction`                | Decline Authentication.            |
+|`generateQR(data)`                  | Generate QR Code.                  |
+|`Audit(data)`                       | Audit Transaction.                 |
+|`getAllAudits()`                    | Get All Audits.                    |
+|`addDevice(data)`                   | Add Another Device.                |
+
 
 
 Refer to the following link for more details.

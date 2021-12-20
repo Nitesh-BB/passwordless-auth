@@ -1,304 +1,296 @@
-const fido2auth = (function () {
-  class fido2auth {
-    constructor(baseurl, clientId) {
-      this.baseurl = baseurl;
-      this.clientId = clientId;
+const App = (() => {
+  let clientId;
+  let baseUrl;
+
+  /**
+   *
+   * @param {String} url
+   * @param {String} id
+   */
+  const init = (url, id) => {
+    baseUrl = url;
+    clientId = id;
+  };
+
+  /**
+   *
+   * @returns {Object}
+   */
+  const getApplicationNameAndLogo = async () => {
+    console.log("getting application logo");
+    try {
+      const response = await fetch(
+        baseUrl + "/api/applicationDetails/" + clientId
+      );
+
+      const responseJson = await response.json();
+
+      if (responseJson.errorCode === -1)
+        throw new Error(responseJson.errorMessage);
+      return responseJson;
+    } catch (error) {
+      throw new Error(error.message);
     }
-
-
-    getApplicationNameAndLogo = async () => {
-      try {
-        const response = await fetch(
-          this.baseurl + "/api/applicationDetails/" + this.clientId);
-      
-        const responseJson = await response.json();
-         if (data.errorCode === -1) throw new Error(data.errorMessage);
-        return responseJson;
-      }
-      catch (error) {
-        throw new Error(error.message);
-      }
+  };
+  const checkRemoteAuthentication = async () => {
+    try {
+      const resp = await fetch(baseUrl + `/api/viewApp/${clientId}`);
+      const data = await resp.json();
+      if (data.errorCode === -1) throw new Error(data.errorMessage);
+      if (data.suspended) throw new Error("App is suspended");
+      return data;
+    } catch (error) {
+      throw new Error(error);
     }
-    checkRemoteAuthentication = async () => {
-      try {
-        const resp = await fetch(
-          this.baseurl + `/api/viewApp/${this.clientId}`
+  };
+
+  /**
+   *
+   * @param {string} transactionId
+   * @returns {Object}
+   */
+
+  const getTransactionStatusOnChange = async (transactionId) => {
+    try {
+      const poll = async function (fn, ms) {
+        let response = await fn();
+        let responseJSON = await response.json();
+        while (responseJSON.status === "PENDING") {
+          await wait(ms);
+          response = await fn();
+          responseJSON = await response.json();
+          console.log(responseJSON);
+        }
+        return responseJSON;
+      };
+
+      const wait = function (ms = 2000) {
+        return new Promise((resolve) => {
+          setTimeout(resolve, ms);
+        });
+      };
+
+      const transaction = () => {
+        return fetch(
+          baseUrl + `/api/transaction/getTransaction/${transactionId}`
         );
-        const data = await resp.json();
-        if (data.errorCode === -1) throw new Error(data.errorMessage);
-        if (data.app.suspended) throw new Error("App is suspended");
-        return data;
-      } catch (error) {
-        throw new Error(error);
-      }
-    };
+      };
 
-    getTransactionStatusOnChange = async (transactionId) => {
-      try {
-        const poll = async function (fn, ms) {
-          let response = await fn();
-          let responseJSON = await response.json();
-          while (responseJSON.status === "PENDING") {
-            await wait(ms);
-            response = await fn();
-            responseJSON = await response.json();
-          }
-          return responseJSON;
-        };
+      let response = await poll(transaction, 2000);
 
-        const wait = function (ms = 1000) {
-          return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-          });
-        };
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
 
-        const transaction = () => {
-          return fetch(
-            this.baseurl + `/api/transaction/getTransaction/${transactionId}`
-          );
-        };
+  /**
+   *
+   * @param {Object} data
+   * @returns {Object}
+   */
+  const sendPushNotification = async (data) => {
+    try {
+      const remote = await checkRemoteAuthentication();
+      if (!remote.app.remotePlatformAuth)
+        throw new Error("Remote platform authentication is not enabled");
 
-        let response = await poll(transaction, 1000);
-        console.log("getTransactation", response);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    };
-
-    sendPushNotification = async (data) => {
-      try {
-        const remote = await this.checkRemoteAuthentication();
-        if (!remote.app.remotePlatformAuth)
-          throw new Error("Remote platform authentication is not enabled");
-
-        const transactionResponse = await fetch(
-          this.baseurl + "/api/transaction/createTransaction",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ username: data.username }),
-          }
-        );
-        const transactionResponseJSON = await transactionResponse.json();
-
-        const { transactionId } = transactionResponseJSON;
-        data.id = transactionId;
-        const response = await fetch(this.baseurl + "/api/sendPush/client", {
+      const transactionResponse = await fetch(
+        baseUrl + "/api/transaction/createTransaction",
+        {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username: data.username }),
+        }
+      );
+      const transactionResponseJSON = await transactionResponse.json();
+
+      const { transactionId } = transactionResponseJSON;
+      data.id = transactionId;
+      const response = await fetch(baseUrl + "/api/sendPush/client", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: data.username,
+          clientId: clientId,
+          data: { ...data, clientID: clientId },
+          type: "login",
+        }),
+      });
+      const responseJSON = await response.json();
+      responseJSON.transactionId = transactionId;
+      return responseJSON;
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+
+  /**
+   *
+   * @param {String} transactionId
+   * @param {Object} data
+   * @returns {Object}
+   */
+  const declineTransaction = async (transactionId) => {
+    try {
+      const response = await fetch(
+        baseUrl + `/api/transaction/updateTransactionStatus/${transactionId}`,
+        {
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: data.username,
-            clientId: this.clientId,
-            data: { ...data, clientID: this.clientId },
-            type: "login",
+            transactionStatus: "FAILED",
+            message: "User Declined Authentication !",
           }),
-        });
-        const responseJSON = await response.json();
-        return responseJSON;
-      } catch (error) {
-        throw new Error(error);
-      }
-    };
+        }
+      );
+      const responseJSON = await response.json();
+      return responseJSON;
+    } catch (error) {
+      throw error;
+    }
+  };
 
-    updateTransaction = async (transactionId, data) => {
-      try {
-        const response = await fetch(
-          this.baseurl + `/api/transaction/updateTransaction/${transactionId}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ data }),
-          }
-        );
-        const responseJSON = await response.json();
-        return responseJSON;
-      } catch (error) {
-        throw error;
-      }
-    };
-    async Audit(userdata) {
-      const { userId, data, type } = userdata;
-      try {
-        const Audit = await fetch(this.baseurl + "/api/addToReport", {
+  /**
+   *
+   * @param {Object} userdata
+   * @returns {Object}
+   */
+  const Audit = async (userdata) => {
+    const { userId, data, type } = userdata;
+    try {
+      const Audit = await fetch(baseUrl + "/api/addToReport", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, appId: clientId, data, type }),
+      });
+
+      const AuditDataJson = await Audit.json();
+      if (AuditDataJson.errorCode === -1)
+        throw new Error(AuditDataJson.errorMessage);
+      else return AuditDataJson;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  };
+
+  /**
+   *
+   * @param {String} username
+   * @returns
+   */
+  const getAllAudits = async (username) => {
+    try {
+      const audit = await fetch(
+        `${baseUrl}/api/getAllAudits/${username}/${clientId}`
+      );
+
+      const AuditDataJson = await audit.json();
+
+      if (AuditDataJson.errorCode === -1)
+        throw new Error(AuditDataJson.errorMessage);
+      else return AuditDataJson;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  };
+
+  /**
+   *
+   * @param {Object} userDetails
+   * @returns {Object}
+   */
+  const generateQR = async (userDetails) => {
+    try {
+      const remote = await checkRemoteAuthentication();
+      if (!remote.app.remotePlatformAuth)
+        throw new Error("Remote platform authentication is not enabled");
+
+      const transactionResponse = await fetch(
+        baseUrl + "/api/transaction/createTransaction",
+        {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ userId, appId: this.clientId, data, type }),
-        });
+          body: JSON.stringify({ username: userDetails.username }),
+        }
+      );
+      const transactionResponseJSON = await transactionResponse.json();
 
-        const AuditDataJson = await Audit.json();
-        if (AuditDataJson.errorCode === -1)
-          throw new Error(AuditDataJson.errorMessage);
-        else return AuditDataJson;
-      } catch (error) {
-        throw new Error(error.message);
-      }
+      const { transactionId } = transactionResponseJSON;
+      userDetails.id = transactionId;
+      const data = await fetch(baseUrl + "/api/generateQrCode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...userDetails, clientID: clientId }),
+      });
+
+      const dataJson = await data.json();
+      dataJson.transactionId = transactionId;
+
+      return dataJson;
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+
+  /**
+   *
+   * @param {username:"","id":""} data
+   * @returns {Object}
+   */
+  const register = async ({ username, id }) => {
+    if (!baseUrl || !clientId) {
+      throw new Error("BaseURL and ClientID is not added");
     }
 
-    getAllAudits = async (username) => {
-      try {
-        const audit = await fetch(
-          `${this.baseurl}/api/getAllAudits/${username}/${this.clientId}`
-        );
-
-        const AuditDataJson = await audit.json();
-
-        if (AuditDataJson.errorCode === -1)
-          throw new Error(AuditDataJson.errorMessage);
-        else return AuditDataJson;
-      } catch (error) {
-        throw new Error(error.message);
-      }
-    };
-
-    generateQR = async (userDetails) => {
-      try {
-        const remote = await this.checkRemoteAuthentication();
-        if (!remote.app.remotePlatformAuth)
-          throw new Error("Remote platform authentication is not enabled");
-
-        const transactionResponse = await fetch(
-          this.baseurl + "/api/transaction/createTransaction",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ username: userDetails.username }),
-          }
-        );
-        const transactionResponseJSON = await transactionResponse.json();
-
-        const { transactionId } = transactionResponseJSON;
-        userDetails.id = transactionId;
-        const data = await fetch(this.baseurl + "/api/generateQrCode", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ...userDetails, clientID: this.clientId }),
-        });
-
-        const dataJson = await data.json();
-
-        return dataJson;
-      } catch (error) {
-        throw new Error(error);
-      }
-    };
-    register = async ({ username, id }) => {
-      if (!this.baseurl || !this.clientId) {
-        throw new Error("BaseURL and ClientID is not added");
-      }
-
-      try {
-        const resp = await fetch(this.baseurl + "/api/registerUser", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username,
-            clientId: this.clientId,
-          }),
-        });
-
-        const data = await resp.json();
-
-        console.log("data", data);
-
-        if (data?.errorCode === -1) throw new Error(data.errorMessage);
-        let attResp;
-        try {
-          attResp = await startAttestation(data);
-
-          // console.log(attResp);
-        } catch (error) {
-          throw new Error(error);
-        }
-
-        const responseData = {
-          credential: attResp,
-          username,
-          challenge: data.challenge,
-          clientId: this.clientId,
-          transactionId: id,
-        };
-        console.log(responseData);
-        const verificationResp = await fetch(
-          this.baseurl + "/api/verify-registerUser-attestation",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(responseData),
-          }
-        );
-
-        const verificationJSON = await verificationResp.json();
-
-        if (verificationJSON.errorCode === -1)
-          throw new Error(verificationJSON.errorMessage);
-
-        if (verificationJSON && verificationJSON.verified) {
-          return verificationJSON;
-        } else {
-          let error = JSON.stringify(verificationJSON, null, 4);
-          throw new Error(error);
-        }
-      } catch (error) {
-        throw new Error(error);
-      }
-    };
-    login = async ({ username, id }) => {
-      // console.log(username);
-      if (!this.baseurl || !this.clientId) {
-        throw new Error("BaseURL and ClientID is not added");
-      }
-
-      const resp = await fetch(this.baseurl + "/api/LoginUser", {
+    try {
+      const resp = await fetch(baseUrl + "/api/registerUser", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           username,
-          clientId: this.clientId,
+          clientId: clientId,
         }),
       });
-      const opts = await resp.json();
 
-      if (opts?.errorCode === -1) {
-        throw new Error(opts.errorMessage);
-      }
-      let asseResp;
+      const data = await resp.json();
+
+      console.log("data", data);
+
+      if (data.errorCode === -1) throw new Error(data.errorMessage);
+      let attResp;
       try {
-        asseResp = await startAssertion(opts);
-        // console.log("asseRep", asseResp);
+        attResp = await startAttestation(data);
+
+        // console.log(attResp);
       } catch (error) {
-        if (error.name === "TypeError")
-          throw new Error("UserName is not Registered for FIDO");
-        else throw new Error(error.message);
+        throw new Error(error);
       }
+
       const responseData = {
-        ...asseResp,
+        credential: attResp,
         username,
-        challenge: opts.challenge,
-        clientId: this.clientId,
+        challenge: data.challenge,
+        clientId: clientId,
         transactionId: id,
       };
-
+      console.log(responseData);
       const verificationResp = await fetch(
-        this.baseurl + "/api/verify-loginUser-assertion",
+        baseUrl + "/api/verify-registerUser-attestation",
         {
           method: "POST",
           headers: {
@@ -310,82 +302,152 @@ const fido2auth = (function () {
 
       const verificationJSON = await verificationResp.json();
 
+      if (verificationJSON.errorCode === -1)
+        throw new Error(verificationJSON.errorMessage);
+
       if (verificationJSON && verificationJSON.verified) {
         return verificationJSON;
       } else {
-        const error = JSON.stringify(verificationJSON, null, 4);
-        // console.log("new error: ", error);
+        let error = JSON.stringify(verificationJSON, null, 4);
         throw new Error(error);
       }
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+
+  /**
+   *
+   * @param {Object} data
+   * @returns {Object}
+   */
+  const login = async ({ username, id }) => {
+    // console.log(username);
+    if (!baseUrl || !clientId) {
+      throw new Error("BaseURL and ClientID is not added");
+    }
+
+    const resp = await fetch(baseUrl + "/api/LoginUser", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username,
+        clientId: clientId,
+      }),
+    });
+    const opts = await resp.json();
+
+    if (opts.errorCode === -1) {
+      throw new Error(opts.errorMessage);
+    }
+    let asseResp;
+    try {
+      asseResp = await startAssertion(opts);
+      // console.log("asseRep", asseResp);
+    } catch (error) {
+      if (error.name === "TypeError")
+        throw new Error("UserName is not Registered for FIDO");
+      else throw new Error(error.message);
+    }
+    const responseData = {
+      ...asseResp,
+      username,
+      challenge: opts.challenge,
+      clientId: clientId,
+      transactionId: id,
     };
 
-    addDevice = async (username) => {
-      if (!this.baseurl || !this.clientId) {
-        throw new Error("BaseURL and ClientID is not added");
+    const verificationResp = await fetch(
+      baseUrl + "/api/verify-loginUser-assertion",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(responseData),
+      }
+    );
+
+    const verificationJSON = await verificationResp.json();
+
+    if (verificationJSON && verificationJSON.verified) {
+      return verificationJSON;
+    } else {
+      const error = JSON.stringify(verificationJSON, null, 4);
+      // console.log("new error: ", error);
+      throw new Error(error);
+    }
+  };
+
+  const addDevice = async (username) => {
+    if (!baseUrl || !clientId) {
+      throw new Error("BaseURL and ClientID is not added");
+    }
+
+    try {
+      const resp = await fetch(baseUrl + "/api/addDevice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          clientId: clientId,
+        }),
+      });
+
+      const data = await resp.json();
+      if (data.errorCode === -1) throw new Error(data.errorMessage);
+      let attResp;
+      try {
+        attResp = await startAttestation(data);
+
+        // console.log(attResp);
+      } catch (error) {
+        throw new Error(error);
       }
 
-      try {
-        const resp = await fetch(this.baseurl + "/api/addDevice", {
+      const responseData = {
+        credential: attResp,
+        username,
+        challenge: data.challenge,
+        clientId: clientId,
+      };
+      // console.log(responseData);
+      const verificationResp = await fetch(
+        baseUrl + "/api/verify-registerUser-attestation",
+        {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            username,
-            clientId: this.clientId,
-          }),
-        });
-
-        const data = await resp.json();
-        if (data?.errorCode === -1) throw new Error(data.errorMessage);
-        let attResp;
-        try {
-          attResp = await startAttestation(data);
-
-          // console.log(attResp);
-        } catch (error) {
-          throw new Error(error);
+          body: JSON.stringify(responseData),
         }
+      );
 
-        const responseData = {
-          credential: attResp,
-          username,
-          challenge: data.challenge,
-          clientId: this.clientId,
-        };
-        // console.log(responseData);
-        const verificationResp = await fetch(
-          this.baseurl + "/api/verify-registerUser-attestation",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(responseData),
-          }
-        );
+      const verificationJSON = await verificationResp.json();
 
-        const verificationJSON = await verificationResp.json();
+      if (verificationJSON.errorCode === -1)
+        throw new Error(verificationJSON.errorMessage);
 
-        if (verificationJSON.errorCode === -1)
-          throw new Error(verificationJSON.errorMessage);
-
-        if (verificationJSON && verificationJSON.verified) {
-          return verificationJSON;
-        } else {
-          let error = JSON.stringify(verificationJSON, null, 4);
-          throw new Error(error);
-        }
-      } catch (error) {
+      if (verificationJSON && verificationJSON.verified) {
+        return verificationJSON;
+      } else {
+        let error = JSON.stringify(verificationJSON, null, 4);
         throw new Error(error);
       }
-    };
-  }
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+
   function n(e) {
     const t = e.replace(/-/g, "+").replace(/_/g, "/"),
       n = (4 - (t.length % 4)) % 4,
       r = t.padEnd(t.length + n, "="),
-      o = atob(r),
+      o = window.atob(r),
       i = new ArrayBuffer(o.length),
       a = new Uint8Array(i);
     for (let e = 0; e < o.length; e++) a[e] = o.charCodeAt(e);
@@ -412,7 +474,7 @@ const fido2auth = (function () {
     );
   }
 
-  startAssertion = async (e) => {
+  const startAssertion = async (e) => {
     var i, a;
     if (!r()) throw new Error("WebAuthn is not supported in this browser");
     let s;
@@ -444,7 +506,7 @@ const fido2auth = (function () {
     );
   };
 
-  startAttestation = async (e) => {
+  const startAttestation = async (e) => {
     if (!r()) throw new Error("WebAuthn is not supported in this browser");
 
     const publicKey = {
@@ -470,10 +532,23 @@ const fido2auth = (function () {
     return p;
   };
 
-  return fido2auth;
+  return {
+    init,
+    getApplicationNameAndLogo,
+    getTransactionStatusOnChange,
+    sendPushNotification,
+    declineTransaction,
+    Audit,
+    getAllAudits,
+    generateQR,
+    login,
+    register,
+    addDevice,
+  };
 })();
+
 if (typeof exports != "undefined") {
-  exports.passwordless = fido2auth;
+  exports.Passwordless = App;
 } else {
-  passwordless = fido2auth;
+  var Passwordless = App;
 }
