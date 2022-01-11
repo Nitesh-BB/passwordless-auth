@@ -20,7 +20,7 @@ const App = (() => {
     console.log("getting application logo");
     try {
       const response = await fetch(
-        baseUrl + "/api/applicationDetails/" + clientId
+        baseUrl + "/applicationDetails/" + clientId
       );
 
       const responseJson = await response.json();
@@ -34,7 +34,7 @@ const App = (() => {
   };
   const checkRemoteAuthentication = async () => {
     try {
-      const resp = await fetch(baseUrl + `/api/viewApp/${clientId}`);
+      const resp = await fetch(baseUrl + `/viewApp/${clientId}`);
       const data = await resp.json();
       if (data.errorCode === -1) throw new Error(data.errorMessage);
       if (data.suspended) throw new Error("App is suspended");
@@ -72,7 +72,7 @@ const App = (() => {
 
       const transaction = () => {
         return fetch(
-          baseUrl + `/api/transaction/getTransaction/${transactionId}`
+          baseUrl + `/transaction/getTransaction/${transactionId}`
         );
       };
 
@@ -92,11 +92,11 @@ const App = (() => {
   const sendPushNotification = async (data) => {
     try {
       const remote = await checkRemoteAuthentication();
-      if (!remote.app.remotePlatformAuth)
+      if (!remote.remotePlatformAuth)
         throw new Error("Remote platform authentication is not enabled");
 
       const transactionResponse = await fetch(
-        baseUrl + "/api/transaction/createTransaction",
+        baseUrl + "/transaction/createTransaction",
         {
           method: "POST",
           headers: {
@@ -109,7 +109,7 @@ const App = (() => {
 
       const { transactionId } = transactionResponseJSON;
       data.id = transactionId;
-      const response = await fetch(baseUrl + "/api/sendPush/client", {
+      const response = await fetch(baseUrl + "/sendPush/client", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -138,7 +138,7 @@ const App = (() => {
   const declineTransaction = async (transactionId) => {
     try {
       const response = await fetch(
-        baseUrl + `/api/transaction/updateTransactionStatus/${transactionId}`,
+        baseUrl + `/transaction/updateTransactionStatus/${transactionId}`,
         {
           method: "PUT",
           headers: {
@@ -157,30 +157,7 @@ const App = (() => {
     }
   };
 
-  /**
-   *
-   * @param {Object} userdata
-   * @returns {Object}
-   */
-  const Audit = async (userdata) => {
-    const { userId, data, type } = userdata;
-    try {
-      const Audit = await fetch(baseUrl + "/api/addToReport", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId, appId: clientId, data, type }),
-      });
 
-      const AuditDataJson = await Audit.json();
-      if (AuditDataJson.errorCode === -1)
-        throw new Error(AuditDataJson.errorMessage);
-      else return AuditDataJson;
-    } catch (error) {
-      throw new Error(error.message);
-    }
-  };
 
   /**
    *
@@ -190,7 +167,7 @@ const App = (() => {
   const getAllAudits = async (username) => {
     try {
       const audit = await fetch(
-        `${baseUrl}/api/getAllAudits/${username}/${clientId}`
+        `${baseUrl}/getAllAudits/${username}/${clientId}`
       );
 
       const AuditDataJson = await audit.json();
@@ -211,11 +188,12 @@ const App = (() => {
   const generateQR = async (userDetails) => {
     try {
       const remote = await checkRemoteAuthentication();
-      if (!remote.app.remotePlatformAuth)
+      if (!remote.remotePlatformAuth)
         throw new Error("Remote platform authentication is not enabled");
 
+
       const transactionResponse = await fetch(
-        baseUrl + "/api/transaction/createTransaction",
+        baseUrl + "/transaction/createTransaction",
         {
           method: "POST",
           headers: {
@@ -228,7 +206,7 @@ const App = (() => {
 
       const { transactionId } = transactionResponseJSON;
       userDetails.id = transactionId;
-      const data = await fetch(baseUrl + "/api/generateQrCode", {
+      const data = await fetch(baseUrl + "/generateQrCode", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -256,7 +234,7 @@ const App = (() => {
     }
 
     try {
-      const resp = await fetch(baseUrl + "/api/registerUser", {
+      const resp = await fetch(baseUrl + "/registerUser", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -290,7 +268,7 @@ const App = (() => {
       };
       console.log(responseData);
       const verificationResp = await fetch(
-        baseUrl + "/api/verify-registerUser-attestation",
+        baseUrl + "/verify-registerUser-attestation",
         {
           method: "POST",
           headers: {
@@ -327,7 +305,7 @@ const App = (() => {
       throw new Error("BaseURL and ClientID is not added");
     }
 
-    const resp = await fetch(baseUrl + "/api/LoginUser", {
+    const resp = await fetch(baseUrl + "/LoginUser", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -360,7 +338,7 @@ const App = (() => {
     };
 
     const verificationResp = await fetch(
-      baseUrl + "/api/verify-loginUser-assertion",
+      baseUrl + "/verify-loginUser-assertion",
       {
         method: "POST",
         headers: {
@@ -387,7 +365,7 @@ const App = (() => {
     }
 
     try {
-      const resp = await fetch(baseUrl + "/api/addDevice", {
+      const resp = await fetch(baseUrl + "/addDevice", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -417,7 +395,7 @@ const App = (() => {
       };
       // console.log(responseData);
       const verificationResp = await fetch(
-        baseUrl + "/api/verify-registerUser-attestation",
+        baseUrl + "/verify-registerUser-attestation",
         {
           method: "POST",
           headers: {
@@ -538,7 +516,7 @@ const App = (() => {
     getTransactionStatusOnChange,
     sendPushNotification,
     declineTransaction,
-    Audit,
+  
     getAllAudits,
     generateQR,
     login,
