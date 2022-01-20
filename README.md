@@ -44,7 +44,7 @@ Passwordless.login(data)
 Yes, it can be used in browser. include follwing in head tag
 
 ```
-<script src="https://cdn.jsdelivr.net/npm/passwordless-bb@2.0.4/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/passwordless-bb@2.0.6/index.js"></script>
 
 
 const fido = new passwordless("BASE_URL","CLIENT_ID")

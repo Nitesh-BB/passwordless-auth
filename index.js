@@ -19,9 +19,7 @@ const App = (() => {
   const getApplicationNameAndLogo = async () => {
     console.log("getting application logo");
     try {
-      const response = await fetch(
-        baseUrl + "/applicationDetails/" + clientId
-      );
+      const response = await fetch(baseUrl + "/app/applicationDetails/" + clientId);
 
       const responseJson = await response.json();
 
@@ -34,7 +32,7 @@ const App = (() => {
   };
   const checkRemoteAuthentication = async () => {
     try {
-      const resp = await fetch(baseUrl + `/viewApp/${clientId}`);
+      const resp = await fetch(baseUrl + `/app/viewApp/${clientId}`);
       const data = await resp.json();
       if (data.errorCode === -1) throw new Error(data.errorMessage);
       if (data.suspended) throw new Error("App is suspended");
@@ -71,9 +69,7 @@ const App = (() => {
       };
 
       const transaction = () => {
-        return fetch(
-          baseUrl + `/transaction/getTransaction/${transactionId}`
-        );
+        return fetch(baseUrl + `/transaction/getTransaction/${transactionId}`);
       };
 
       let response = await poll(transaction, 2000);
@@ -157,8 +153,6 @@ const App = (() => {
     }
   };
 
-
-
   /**
    *
    * @param {String} username
@@ -190,7 +184,6 @@ const App = (() => {
       const remote = await checkRemoteAuthentication();
       if (!remote.remotePlatformAuth)
         throw new Error("Remote platform authentication is not enabled");
-
 
       const transactionResponse = await fetch(
         baseUrl + "/transaction/createTransaction",
@@ -365,7 +358,7 @@ const App = (() => {
     }
 
     try {
-      const resp = await fetch(baseUrl + "/addDevice", {
+      const resp = await fetch(baseUrl + "/device/addDevice", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -516,7 +509,7 @@ const App = (() => {
     getTransactionStatusOnChange,
     sendPushNotification,
     declineTransaction,
-  
+
     getAllAudits,
     generateQR,
     login,

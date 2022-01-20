@@ -1,6 +1,6 @@
 {
   "name": "passwordless-bb",
-  "version": "2.0.4",
+  "version": "2.0.6",
   "description": "Helper package for bringing FIDO2 authentication to Client Application",
   "main": "index.js",
   "scripts": {
