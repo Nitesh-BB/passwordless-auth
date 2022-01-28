@@ -19,7 +19,9 @@ const App = (() => {
   const getApplicationNameAndLogo = async () => {
     console.log("getting application logo");
     try {
-      const response = await fetch(baseUrl + "/app/applicationDetails/" + clientId);
+      const response = await fetch(
+        baseUrl + "/app/applicationDetails/" + clientId
+      );
 
       const responseJson = await response.json();
 
@@ -57,7 +59,6 @@ const App = (() => {
           await wait(ms);
           response = await fn();
           responseJSON = await response.json();
-          console.log(responseJSON);
         }
         return responseJSON;
       };
@@ -352,7 +353,7 @@ const App = (() => {
     }
   };
 
-  const addDevice = async (username) => {
+  const addDevice = async ({ username, id }) => {
     if (!baseUrl || !clientId) {
       throw new Error("BaseURL and ClientID is not added");
     }
@@ -385,6 +386,7 @@ const App = (() => {
         username,
         challenge: data.challenge,
         clientId: clientId,
+        transactionId: id,
       };
       // console.log(responseData);
       const verificationResp = await fetch(
