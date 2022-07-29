@@ -99,7 +99,7 @@ const App = (() => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ username: data.username }),
+          body: JSON.stringify({ username: data.username, appId: clientId }),
         }
       );
       const transactionResponseJSON = await transactionResponse.json();
@@ -193,7 +193,10 @@ const App = (() => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ username: userDetails.username }),
+          body: JSON.stringify({
+            username: userDetails.username,
+            appId: clientId,
+          }),
         }
       );
       const transactionResponseJSON = await transactionResponse.json();
